@@ -22,9 +22,11 @@ public class OPC implements Runnable
   byte firmwareConfig;
   String colorCorrection;
   boolean enableShowLocations;
+  boolean isConnected;
 
   OPC(PApplet parent, String host, int port)
   {
+    isConnected=false;
     this.host = host;
     this.port = port;
     thread = new Thread(this);
@@ -327,6 +329,10 @@ public class OPC implements Runnable
       dispose();
     }
   }
+  
+  boolean isConnected(){
+    return isConnected;
+  }
 
   void dispose()
   {
@@ -352,6 +358,7 @@ public class OPC implements Runnable
           socket.setTcpNoDelay(true);
           pending = socket.getOutputStream(); // Avoid race condition...
           println("Connected to OPC server");
+          isConnected=true;
           sendColorCorrectionPacket();        // These write to 'pending'
           sendFirmwareConfigPacket();         // rather than 'output' before
           output = pending;                   // rest of code given access.
