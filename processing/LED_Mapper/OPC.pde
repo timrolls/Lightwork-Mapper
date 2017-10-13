@@ -48,7 +48,7 @@ public class OPC implements Runnable
 
     pixelLocations[index] = x + width * y;
   }
-  
+
   // Set the location of several LEDs arranged in a strip.
   // Angle is in radians, measured clockwise from +X.
   // (x,y) is the center of the strip.
@@ -57,8 +57,8 @@ public class OPC implements Runnable
     float s = sin(angle);
     float c = cos(angle);
     for (int i = 0; i < count; i++) {
-      led(reversed ? (index + count - 1 - i) : (index + i),
-        (int)(x + (i - (count-1)/2.0) * spacing * c + 0.5),
+      led(reversed ? (index + count - 1 - i) : (index + i), 
+        (int)(x + (i - (count-1)/2.0) * spacing * c + 0.5), 
         (int)(y + (i - (count-1)/2.0) * spacing * s + 0.5));
     }
   }
@@ -70,7 +70,7 @@ public class OPC implements Runnable
   {
     for (int i = 0; i < count; i++) {
       float a = angle + i * 2 * PI / count;
-      led(index + i, (int)(x - radius * cos(a) + 0.5),
+      led(index + i, (int)(x - radius * cos(a) + 0.5), 
         (int)(y - radius * sin(a) + 0.5));
     }
   }
@@ -78,15 +78,15 @@ public class OPC implements Runnable
   // Set the location of several LEDs arranged in a grid. The first strip is
   // at 'angle', measured in radians clockwise from +X.
   // (x,y) is the center of the grid.
-  void ledGrid(int index, int stripLength, int numStrips, float x, float y,
-               float ledSpacing, float stripSpacing, float angle, boolean zigzag)
+  void ledGrid(int index, int stripLength, int numStrips, float x, float y, 
+    float ledSpacing, float stripSpacing, float angle, boolean zigzag)
   {
     float s = sin(angle + HALF_PI);
     float c = cos(angle + HALF_PI);
     for (int i = 0; i < numStrips; i++) {
-      ledStrip(index + stripLength * i, stripLength,
-        x + (i - (numStrips-1)/2.0) * stripSpacing * c,
-        y + (i - (numStrips-1)/2.0) * stripSpacing * s, ledSpacing,
+      ledStrip(index + stripLength * i, stripLength, 
+        x + (i - (numStrips-1)/2.0) * stripSpacing * c, 
+        y + (i - (numStrips-1)/2.0) * stripSpacing * s, ledSpacing, 
         angle, zigzag && (i % 2) == 1);
     }
   }
@@ -110,7 +110,7 @@ public class OPC implements Runnable
   {
     enableShowLocations = enabled;
   }
-  
+
   // Enable or disable dithering. Dithering avoids the "stair-stepping" artifact and increases color
   // resolution by quickly jittering between adjacent 8-bit brightness levels about 400 times a second.
   // Dithering is on by default.
@@ -160,7 +160,7 @@ public class OPC implements Runnable
     colorCorrection = "{ \"gamma\": " + gamma + ", \"whitepoint\": [" + red + "," + green + "," + blue + "]}";
     sendColorCorrectionPacket();
   }
-  
+
   // Set custom color correction parameters from a string
   void setColorCorrection(String s)
   {
@@ -175,7 +175,7 @@ public class OPC implements Runnable
       // We'll do this when we reconnect
       return;
     }
- 
+
     byte[] packet = new byte[9];
     packet[0] = (byte)0x00; // Channel (reserved)
     packet[1] = (byte)0xFF; // Command (System Exclusive)
@@ -189,7 +189,8 @@ public class OPC implements Runnable
 
     try {
       pending.write(packet);
-    } catch (Exception e) {
+    } 
+    catch (Exception e) {
       dispose();
     }
   }
@@ -221,7 +222,8 @@ public class OPC implements Runnable
     try {
       pending.write(header);
       pending.write(content);
-    } catch (Exception e) {
+    } 
+    catch (Exception e) {
       dispose();
     }
   }
@@ -267,7 +269,7 @@ public class OPC implements Runnable
       updatePixels();
     }
   }
-  
+
   // Change the number of pixels in our output packet.
   // This is normally not needed; the output packet is automatically sized
   // by draw() and by setPixel().
@@ -284,7 +286,7 @@ public class OPC implements Runnable
       packetData[3] = (byte)(numBytes & 0xFF); // Length low byte
     }
   }
-  
+
   // Directly manipulate a pixel in the output buffer. This isn't needed
   // for pixels that are mapped to the screen.
   void setPixel(int number, color c)
@@ -298,7 +300,7 @@ public class OPC implements Runnable
     packetData[offset + 1] = (byte) (c >> 8);
     packetData[offset + 2] = (byte) c;
   }
-  
+
   // Read a pixel from the output buffer. If the pixel was mapped to the display,
   // this returns the value we captured on the previous frame.
   color getPixel(int number)
@@ -325,13 +327,10 @@ public class OPC implements Runnable
 
     try {
       output.write(packetData);
-    } catch (Exception e) {
+    } 
+    catch (Exception e) {
       dispose();
     }
-  }
-  
-  boolean isConnected(){
-    return isConnected;
   }
 
   void dispose()
@@ -350,9 +349,9 @@ public class OPC implements Runnable
     // Thread tests server connection periodically, attempts reconnection.
     // Important for OPC arrays; faster startup, client continues
     // to run smoothly when mobile servers go in and out of range.
-    for(;;) {
+    for (;; ) {
 
-      if(output == null) { // No OPC connection?
+      if (output == null) { // No OPC connection?
         try {              // Make one!
           socket = new Socket(host, port);
           socket.setTcpNoDelay(true);
@@ -363,9 +362,11 @@ public class OPC implements Runnable
           sendFirmwareConfigPacket();         // rather than 'output' before
           output = pending;                   // rest of code given access.
           // pending not set null, more config packets are OK!
-        } catch (ConnectException e) {
+        } 
+        catch (ConnectException e) {
           dispose();
-        } catch (IOException e) {
+        } 
+        catch (IOException e) {
           dispose();
         }
       }
@@ -378,4 +379,75 @@ public class OPC implements Runnable
       }
     }
   }
+
+  //--------------------------------------------------------------
+  // Additions to OPC class
+  //--------------------------------------------------------------
+
+  int ledsPerStrip;
+
+  boolean isConnected() {
+    return isConnected;
+  }
+
+  void autoWriteData(color[] pix) // TODO: test this, it's hacked together
+  {
+    // Bail early if there's no pixel data or there is too much data
+    if (pix.length ==0)
+    {
+      println("No Data");
+      return;
+    }
+
+    for (int i = 0; i<pix.length; i++) {
+      color c = pix[i];
+
+      int offset = 4 + i * 3;
+      if (packetData == null || packetData.length < offset + 3) {
+        setPixelCount(i + 1);
+      }
+
+      packetData[offset] = (byte) (c >> 16);
+      packetData[offset + 1] = (byte) (c >> 8);
+      packetData[offset + 2] = (byte) c;
+    }
+
+    writePixels();
+  }
+
+
+  //void autoWriteData(color[] pix)
+  //{
+  //  // Bail early if there's no pixel data or there is too much data
+  //  if (pix.length ==0)
+  //  {
+  //    println("No Data");
+  //    return;
+  //  }
+
+  //  // If there is more than [ledsPerStrip] pixels per channel limit the amount to [ledsPerStrip]
+  //  if (pix.length > ledsPerStrip)
+  //  {
+  //    int a = (int)(ofGetElapsedTimef()*100);
+  //    int channelsToWriteTo = pix.length / ledsPerStrip;
+  //    //if (a % 500 == 0) ofLogNotice() << "Auto Splitting " << channelsToWriteTo;
+
+  //    for (int c = 1; c < channelsToWriteTo; c++)
+  //    {
+  //      byte channel = c;
+  //      int channel_offset = (int)((channel - 1) * ledsPerStrip); //not sure about this
+  //      for (int i = 0; i < ledsPerStrip; i++)
+  //      {
+  //        OPC_SPC_packet_data[channel_offset + i].r = pix[channel_offset+i].r;
+  //        OPC_SPC_packet_data[channel_offset + i].g = pix[channel_offset+i].g;
+  //        OPC_SPC_packet_data[channel_offset + i].b = pix[channel_offset+i].b;
+  //      }
+  //      client.sendRawBytes((char *)(OPC_SPC_packet), OPC_SPC_packet_length);
+  //    }
+  //  }
+  //  // We only have one channel...
+  //  else {
+  //    writeChannelOne(pix);
+  //  }
+  //}
 }
