@@ -1,9 +1,10 @@
-import processing.video.*;
+import processing.video.*; //<>//
 import gab.opencv.*;
 
 OPC opc;
 Capture cam;
 OpenCV opencv;
+Animator animator;
 
 int counter = 0;
 int numLeds = 150;
@@ -14,20 +15,24 @@ boolean isMapping=false;
 color on = color(255, 255, 255);
 color off = color(0, 0, 0);
 
-int camX =640;
-int camY =480;
+int camWidth =640;
+int camHeight =480;
+float camAspect = (float)camWidth / (float)camHeight;
+
+String IP = "fade1.local";
 
 void setup()
 {
   size(640, 480);
   opencv = new OpenCV(this, width, height);
 
-   String[] cameras = Capture.list();
+  String[] cameras = Capture.list();
 
   if (cameras == null) {
     println("Failed to retrieve the list of available cameras, will try the default...");
-    cam = new Capture(this, camX, camY,30);
-  } if (cameras.length == 0) {
+    cam = new Capture(this, camWidth, camHeight, 30);
+  } 
+  if (cameras.length == 0) {
     println("There are no cameras available for capture.");
     exit();
   } else {
@@ -36,10 +41,10 @@ void setup()
 
     // The camera can be initialized directly using an element
     // from the array returned by list():
-    cam = new Capture(this, camX, camY,30);
+    cam = new Capture(this, camWidth, camHeight, 30);
     // Or, the settings can be defined based on the text in the list
     //cam = new Capture(this, 640, 480, "Built-in iSight", 30);
-    
+
     // Start capturing the images from the camera
     cam.start();
   }
@@ -47,14 +52,8 @@ void setup()
   opencv.startBackgroundSubtraction(5, 3, 0.5);
   //opencv.startBackgroundSubtraction(50, 30, 1.0);
 
-  // Connect to the local instance of fcserver
-  //opc = new OPC(this, "127.0.0.1", 7890);
-  // Connect with the Raspberry Pi FadeCandy server
-  opc = new OPC(this, "fade1.local", 7890);
-
-  //colorMode(RGB, 100);
-  // Map an 5x10 grid of LEDs to the center of the window
-  //opc.ledGrid5x10(0, width/2, height/2, height / 12.0, 0, true);
+  opc = new OPC(this, IP, 7890);
+  opc.setPixelCount(numLeds);
 
   //stroke(244, 0, 0);
   //strokeWeight(height/12.);
@@ -63,7 +62,12 @@ void setup()
   //  println(opc.pixelLocations[i]);
   //}
 
-  //Turn off all pixels at launch - set in draw once s
+  animator =new Animator (64, 8, 255); //ledsPerstrip, strips, brightness
+  animator.setMode(animationMode.OFF);
+  animator.setFrameSkip(5);
+  animator.setAllLEDColours(color(0, 0, 0)); // Clear the LED strips
+
+  //Turn off all pixels at launch - set in draw once 
   for (int i=0; i<numLeds; i++) {
     opc.setPixel(i, off);
   }
@@ -81,12 +85,9 @@ void draw()
   if (cam.available()) {
     cam.read();
   }
-      image(cam, 0, 0, width, height);
+  image(cam, 0, 0, width, height);
 
-
-  if (isMapping&&opc.isConnected()) {
-    sequentialMapping();
-  }
+  animator.update();
 }
 
 
@@ -96,7 +97,23 @@ void keyPressed() {
   }
 
   if (key == 'm') {
-    isMapping=!isMapping;
+    if (animator.getMode()!=animationMode.CHASE) {
+      animator.setMode(animationMode.CHASE);
+      println("Chase mode");
+    } else {
+      animator.setMode(animationMode.OFF);
+      println("Animator off");
+    }
+  }
+
+  if (key == 't') {
+    if (animator.getMode()!=animationMode.TEST) {
+      animator.setMode(animationMode.TEST);
+      println("Test mode");
+    } else {
+      animator.setMode(animationMode.OFF);
+      println("Animator off");
+    }
   }
 }
 
