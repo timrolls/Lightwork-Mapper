@@ -1,4 +1,13 @@
-import processing.video.*; //<>// //<>// //<>//
+// //<>//
+//  LED_Mapper.pde
+//  Lightwork-Mapper
+//
+//  Created by Leo Stefansson and Tim Rolls 
+//
+//  This sketch uses computer vision to automatically generate mapping for LEDs.
+//  Currently, Fadecandy is supported.
+
+import processing.video.*; 
 import gab.opencv.*;
 
 OPC opc;
@@ -7,8 +16,6 @@ OpenCV opencv;
 Animator animator;
 
 int counter = 0;
-int numLeds = 150;
-PVector[] points = new PVector[numLeds];
 
 boolean isMapping=false;
 
@@ -19,11 +26,18 @@ int camWidth =640;
 int camHeight =480;
 float camAspect = (float)camWidth / (float)camHeight;
 
+//LED defaults
 String IP = "fade1.local";
+int ledsPerStrip =50;
+int strips = 3;
+int numLeds = ledsPerStrip*strips;
+int ledBrightness = 50;
+
+PVector[] points = new PVector[numLeds];
 
 void setup()
 {
-  size(1280, 480);
+  size(640, 960);
 
   String[] cameras = Capture.list();
 
@@ -42,43 +56,41 @@ void setup()
     cam.start();
   }
   opencv = new OpenCV(this, camWidth, camHeight);
-  opencv.threshold(15);
-  opencv.startBackgroundSubtraction(1, 3, 0.5); //int history, int nMixtures, double backgroundRatio
+  opencv.threshold(10);
+  opencv.startBackgroundSubtraction(0, 5, 0.5); //int history, int nMixtures, double backgroundRatio
   //opencv.startBackgroundSubtraction(50, 30, 1.0);
 
   opc = new OPC(this, IP, 7890);
   opc.setPixelCount(numLeds);
 
-  //stroke(244, 0, 0);
-  //strokeWeight(height/12.);
-  //print(opc.pixelLocations);
-  //for (int i = 0; i < opc.pixelLocations.length; i++) {
-  //  println(opc.pixelLocations[i]);
-  //}
-
-  animator =new Animator (50, 3, 100); //ledsPerstrip, strips, brightness
+  animator =new Animator (ledsPerStrip, strips, ledBrightness); //ledsPerstrip, strips, brightness
   animator.setMode(animationMode.OFF);
-  animator.setFrameSkip(5);
-  animator.setAllLEDColours(color(0, 0, 0)); // Clear the LED strips
-
-  //Turn off all pixels at launch - set in draw once 
-  for (int i=0; i<numLeds; i++) {
-    opc.setPixel(i, off);
-  }
+  animator.setFrameSkip(10);
+  animator.setAllLEDColours(off); // Clear the LED strips
 
   background(0);
 }
 
 void draw()
 {
-  if (opc.isConnected()) {
-    opc.writePixels();
-  }
 
-  // Display the camera input
+  // Display the camera input and processed binary image
   if (cam.available()) {
     cam.read();
     image(cam, 0, 0, camWidth, camHeight);
+
+    opencv.loadImage(cam);
+    // Gray channel
+    opencv.gray();
+    opencv.contrast(1.35);
+    opencv.updateBackground();
+
+    //these help close holes in the binary image
+    opencv.dilate();
+    opencv.erode();
+    opencv.blur(2);
+    //opencv.
+    image(opencv.getSnapshot(), 0, camHeight);
   }
 
   if (isMapping)sequentialMapping();
@@ -114,20 +126,14 @@ void keyPressed() {
 
 void sequentialMapping() {
 
-  cam.read();
-  opencv.loadImage(cam);
-  // Gray channel
-  opencv.gray();
-  opencv.contrast(1.35);
+  //cam.read();
+  //opencv.loadImage(cam);
+  //opencv.updateBackground();
 
-  opencv.updateBackground();
-
-  //these help close holes in the binary image
-  opencv.dilate();
-  opencv.erode();
-  opencv.blur(2);
-
-  image(opencv.getSnapshot(), camWidth, 0);
+  ////these help close holes in the binary image
+  //opencv.dilate();
+  //opencv.erode();
+  //opencv.blur(2);
 
 
   //// Get the brightest point
