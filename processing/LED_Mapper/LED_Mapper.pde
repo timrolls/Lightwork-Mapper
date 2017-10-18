@@ -1,4 +1,4 @@
-import processing.video.*; //<>//
+import processing.video.*; //<>// //<>// //<>//
 import gab.opencv.*;
 
 OPC opc;
@@ -23,8 +23,7 @@ String IP = "fade1.local";
 
 void setup()
 {
-  size(640, 480);
-  opencv = new OpenCV(this, width, height);
+  size(1280, 480);
 
   String[] cameras = Capture.list();
 
@@ -36,20 +35,15 @@ void setup()
     println("There are no cameras available for capture.");
     exit();
   } else {
-    println("Available cameras:");
-    printArray(cameras);
+    //println("Available cameras:");
+    //printArray(cameras);
 
-    // The camera can be initialized directly using an element
-    // from the array returned by list():
     cam = new Capture(this, camWidth, camHeight, 30);
-    // Or, the settings can be defined based on the text in the list
-    //cam = new Capture(this, 640, 480, "Built-in iSight", 30);
-
-    // Start capturing the images from the camera
     cam.start();
   }
-
-  opencv.startBackgroundSubtraction(5, 3, 0.5);
+  opencv = new OpenCV(this, camWidth, camHeight);
+  opencv.threshold(15);
+  opencv.startBackgroundSubtraction(1, 3, 0.5); //int history, int nMixtures, double backgroundRatio
   //opencv.startBackgroundSubtraction(50, 30, 1.0);
 
   opc = new OPC(this, IP, 7890);
@@ -62,7 +56,7 @@ void setup()
   //  println(opc.pixelLocations[i]);
   //}
 
-  animator =new Animator (64, 8, 255); //ledsPerstrip, strips, brightness
+  animator =new Animator (50, 3, 100); //ledsPerstrip, strips, brightness
   animator.setMode(animationMode.OFF);
   animator.setFrameSkip(5);
   animator.setAllLEDColours(color(0, 0, 0)); // Clear the LED strips
@@ -84,12 +78,12 @@ void draw()
   // Display the camera input
   if (cam.available()) {
     cam.read();
+    image(cam, 0, 0, camWidth, camHeight);
   }
-  image(cam, 0, 0, width, height);
 
+  if (isMapping)sequentialMapping();
   animator.update();
 }
-
 
 void keyPressed() {
   if (key == 's') {
@@ -97,6 +91,7 @@ void keyPressed() {
   }
 
   if (key == 'm') {
+    isMapping=!isMapping;
     if (animator.getMode()!=animationMode.CHASE) {
       animator.setMode(animationMode.CHASE);
       println("Chase mode");
@@ -118,51 +113,49 @@ void keyPressed() {
 }
 
 void sequentialMapping() {
-  // Light up LEDs sequentially 
-  opc.setPixel(counter, on);
-  opc.writePixels();
 
-  // Get a new camera frame after we turn the LED on
-  if (cam.available() == true) {
-    cam.read();
-    opencv.loadImage(cam);
+  cam.read();
+  opencv.loadImage(cam);
+  // Gray channel
+  opencv.gray();
+  opencv.contrast(1.35);
 
-    // Background differencing 
-    opencv.updateBackground();
+  opencv.updateBackground();
 
-    //delay(1000);
-  }
+  //these help close holes in the binary image
+  opencv.dilate();
+  opencv.erode();
+  opencv.blur(2);
 
-  // Calibration over, display the results
-  if (counter >=  numLeds) {
-    counter = 0;
-    //noLoop();
-    background(0);
-    // Print the points
-    for (int i = 0; i < numLeds; i++) {
-      //print(points[i]);
-      point(points[i].x, points[i].y);
-    }
-  }
+  image(opencv.getSnapshot(), camWidth, 0);
 
-  // Get the brightest point
-  //image(opencv.getOutput(), 0, 0); 
-  PVector loc = opencv.max();
-  points[counter] = loc;
 
-  //draw circle around brightest point detected
-  stroke(255, 0, 0);
-  strokeWeight(4);
+  //// Get the brightest point
+  //PVector loc = opencv.max();
+  //points[counter] = loc;
+
+  ////draw circle around brightest point detected
+  //noFill();
+  //ellipse(loc.x, loc.y, 10, 10);
+
   noFill();
-  ellipse(loc.x, loc.y, 10, 10);
+  stroke(255, 0, 0);
+  strokeWeight(3);
+  for (Contour contour : opencv.findContours()) {
+    contour.draw();
+  }
 
-  delay(30);
+  // Print the points
+  //if (points.length>0) {
+  //  for (int i = 0; i < numLeds; i++) {
+  //    //print(points[i]);
+  //    point(points[i].x, points[i].y);
+  //  }
+  //}
+
+  //delay(30);
   //show counter
   //print(counter);
-
-  // Turn the LED off when we've detected its location
-  opc.setPixel(counter, off);
-  opc.writePixels();
 
   counter++;
 }
