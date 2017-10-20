@@ -1,4 +1,4 @@
-// //<>//
+// //<>// //<>//
 //  LED_Mapper.pde
 //  Lightwork-Mapper
 //
@@ -11,10 +11,10 @@ import processing.svg.*;
 import processing.video.*; 
 import gab.opencv.*;
 
-OPC opc;
 Capture cam;
 OpenCV opencv;
 Animator animator;
+Interface network; 
 
 boolean isMapping=false;
 
@@ -25,11 +25,6 @@ int camWidth =640;
 int camHeight =480;
 float camAspect = (float)camWidth / (float)camHeight;
 
-//LED defaults
-String IP = "fade1.local";
-int ledsPerStrip =50;
-int strips = 3;
-int numLeds = ledsPerStrip*strips;
 int ledBrightness = 50;
 
 ArrayList <PVector>     coords;
@@ -63,12 +58,10 @@ void setup()
   opencv.contrast(1.35);
   opencv.startBackgroundSubtraction(2, 5, 0.5); //int history, int nMixtures, double backgroundRatio
   //opencv.startBackgroundSubtraction(50, 30, 1.0);
-
-  opc = new OPC(this, IP, 7890);
-  opc.setPixelCount(numLeds);
-
-  animator =new Animator (ledsPerStrip, strips, ledBrightness); //ledsPerstrip, strips, brightness
-  animator.setMode(animationMode.OFF);
+  
+  network = new Interface();
+  
+  animator =new Animator(); //ledsPerstrip, strips, brightness
   animator.setFrameSkip(10);
   animator.setAllLEDColours(off); // Clear the LED strips
 
@@ -158,4 +151,10 @@ void saveSVG(ArrayList <PVector> points) {
   
   //selectOutput(prompt, callback, file) - try for file dialog
   
+}
+
+//Closes connections
+void stop()
+{
+  super.stop();
 }
