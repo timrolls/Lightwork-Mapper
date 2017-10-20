@@ -7,6 +7,7 @@
 //  This sketch uses computer vision to automatically generate mapping for LEDs.
 //  Currently, Fadecandy is supported.
 
+import processing.svg.*;
 import processing.video.*; 
 import gab.opencv.*;
 
@@ -14,8 +15,6 @@ OPC opc;
 Capture cam;
 OpenCV opencv;
 Animator animator;
-
-int counter = 0;
 
 boolean isMapping=false;
 
@@ -34,6 +33,7 @@ int numLeds = ledsPerStrip*strips;
 int ledBrightness = 50;
 
 ArrayList <PVector>     coords;
+String savePath = "layout.svg";
 
 void setup()
 {
@@ -99,16 +99,14 @@ void draw()
   animator.update();
 
   if (coords.size()>0) {
-    for(PVector p : coords) ellipse(p.x,p.y,10,10);
+    for (PVector p : coords) ellipse(p.x, p.y, 10, 10);
   }
-  
 }
 
 void keyPressed() {
   if (key == 's') {
-    saveFrame();
+    saveSVG(coords);
   }
-
 
   if (key == 'm') {
     isMapping=!isMapping;
@@ -134,24 +132,6 @@ void keyPressed() {
 
 void sequentialMapping() {
 
-  //cam.read();
-  //opencv.loadImage(cam);
-  //opencv.updateBackground();
-
-  ////these help close holes in the binary image
-  //opencv.dilate();
-  //opencv.erode();
-  //opencv.blur(2);
-
-
-  //// Get the brightest point
-  //PVector loc = opencv.max();
-  //points[counter] = loc;
-
-  ////draw circle around brightest point detected
-  //noFill();
-  //ellipse(loc.x, loc.y, 10, 10);
-
   noFill();
   stroke(255, 0, 0);
   strokeWeight(3);
@@ -160,19 +140,22 @@ void sequentialMapping() {
     contour.draw();
     coords.add(new PVector((float)contour.getBoundingBox().getCenterX(), (float)contour.getBoundingBox().getCenterY()));
   }
+}
 
-
-  // Print the points
-  //if (points.length>0) {
-  //  for (int i = 0; i < numLeds; i++) {
-  //    //print(points[i]);
-  //    point(points[i].x, points[i].y);
-  //  }
-  //}
-
-  //delay(30);
-  //show counter
-  //print(counter);
-
-  counter++;
+void saveSVG(ArrayList <PVector> points) {
+  if (points.size() == 0) {
+    //User is trying to save without anything to output - bail
+    println("No point data to save, run mapping first");
+    return;
+  } else {
+    beginRecord(SVG, savePath); 
+    for (PVector p : points) {
+      point(p.x, p.y);
+    }
+    endRecord();
+    println("SVG saved");
+  }
+  
+  //selectOutput(prompt, callback, file) - try for file dialog
+  
 }
