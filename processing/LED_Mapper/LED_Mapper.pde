@@ -1,4 +1,4 @@
-// //<>// //<>//
+//  //<>//
 //  LED_Mapper.pde
 //  Lightwork-Mapper
 //
@@ -30,12 +30,16 @@ int ledBrightness = 50;
 ArrayList <PVector>     coords;
 String savePath = "layout.svg";
 
+ArrayList <LED>     leds;
+
 void setup()
 {
   size(640, 960);
 
   String[] cameras = Capture.list();
   coords = new ArrayList<PVector>();
+  leds =new ArrayList<LED>();
+
 
   if (cameras == null) {
     println("Failed to retrieve the list of available cameras, will try the default...");
@@ -58,9 +62,9 @@ void setup()
   opencv.contrast(1.35);
   opencv.startBackgroundSubtraction(2, 5, 0.5); //int history, int nMixtures, double backgroundRatio
   //opencv.startBackgroundSubtraction(50, 30, 1.0);
-  
+
   network = new Interface();
-  
+
   animator =new Animator(); //ledsPerstrip, strips, brightness
   animator.setFrameSkip(10);
   animator.setAllLEDColours(off); // Clear the LED strips
@@ -79,7 +83,7 @@ void draw()
     opencv.loadImage(cam);
     opencv.updateBackground();
 
-    opencv.equalizeHistogram();
+    //opencv.equalizeHistogram();
 
     //these help close holes in the binary image
     opencv.dilate();
@@ -102,7 +106,7 @@ void keyPressed() {
   }
 
   if (key == 'm') {
-    isMapping=!isMapping;
+    //isMapping=!isMapping;
     if (animator.getMode()!=animationMode.CHASE) {
       animator.setMode(animationMode.CHASE);
       println("Chase mode");
@@ -119,6 +123,34 @@ void keyPressed() {
     } else {
       animator.setMode(animationMode.OFF);
       println("Animator off");
+    }
+  }
+
+  // Test connecting to OPC server
+  if (key == 'o') {
+    network.setMode(device.FADECANDY);
+    network.connect(this);
+  }
+
+  // Test connecting to PP 
+  if (key == 'p') {
+    network.setMode(device.PIXELPUSHER);
+    network.connect(this);
+  }
+
+  // All LEDs Black (clear)
+  if (key == 'c') {
+    if (network.isConnected()) {
+      animator.setAllLEDColours(off);
+      animator.update();
+    }
+  }
+  
+    // All LEDs White (clear)
+  if (key == 'w') {
+    if (network.isConnected()) {
+      animator.setAllLEDColours(on);
+      animator.update();
     }
   }
 }
@@ -148,9 +180,8 @@ void saveSVG(ArrayList <PVector> points) {
     endRecord();
     println("SVG saved");
   }
-  
+
   //selectOutput(prompt, callback, file) - try for file dialog
-  
 }
 
 //Closes connections
